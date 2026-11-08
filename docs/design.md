@@ -1,8 +1,8 @@
 # facetful-grid design
 
-Status: design only, nothing built. Written 7 November 2026 from a planning
-conversation, so the build can start on another machine with everything that
-was decided. Sections 1–3 explain why; sections 4–15 are the spec.
+Status: v0.1 built on 7 November 2026. Written the same day from a planning
+conversation. Sections 1–3 explain why; sections 4–15 are the spec; §16 lists
+where the build settled or changed the spec, and why.
 
 ## 1. Goal
 
@@ -230,7 +230,8 @@ Browsers cap element height well below that (roughly 17.9M px in Firefox,
 about 33M px in Chrome; check Safari). So the spacer height is capped at a
 conservative maximum, and scroll position maps onto rows:
 
-- Below the cap: linear, `firstRow = floor(scrollTop / rowHeight)`.
+- Below the cap: linear, `firstRow = round(scrollTop / rowHeight)`. Round,
+  not floor: at browser zoom scrollTop is fractional, and floor dropped a row.
 - Above the cap: scaled. A naive proportional mapping makes one wheel tick
   jump many rows (×7 at 2M rows with an 8M px cap). Better: keep an offset
   so small scrolls (wheel, touch, arrow keys) move 1:1 in rows, and only
@@ -302,7 +303,8 @@ horizontally too, allowing for frozen columns.
 - Only loaded rows are copied. Unloaded rows in the range are skipped and
   counted in `onCopy({ skipped })` so the caller can say so.
 - Values come from `text(row, col)`, the same strings the grid shows. Link
-  columns copy the displayed text (consider the href; decide when built).
+  columns copy the displayed text, not the href. Hosts that want the URL can
+  put it in the text.
 - Escaping follows Excel and Sheets: if a value contains a tab, newline or
   double quote, wrap it in double quotes and double any quotes inside.
 - Plain TSV only (`text/plain`). No HTML version in v1.
@@ -387,3 +389,86 @@ gzips it, and fails above 15 KB.
 - HTML on the clipboard, copying unloaded rows
 - a React wrapper
 - an in-grid sort helper for in-memory data
+
+## 16. As built (v0.1)
+
+Size: 5.5 KB gzipped JS plus 1.2 KB CSS, 6.7 KB in all (`npm run size`).
+
+Performance on the dev machine (Chromium, 2M rows, 30 columns, 29 pooled
+rows; `test/browser/perf.spec.js`):
+
+| Measure | Desktop | 4× CPU throttle |
+|---|---|---|
+| `createGrid()` to header and rows painted | ~35 ms (whole demo module) | |
+| `paint()` median / p95 | 0.7 / 2 ms | 2.8 / 7.7 ms |
+
+These are one machine's numbers. Rerun before quoting them.
+
+Settled names and additions to the §6 sketch:
+
+- `need(start, end, generation)`, with `end` exclusive. The generation lets
+  the caller drop answers that arrive after a `reset()`.
+- `invalidate(start, end, generation)` ignores a generation that isn't
+  current, so late rows from an old result never paint.
+- Read-only getters: `generation`, `firstRow`, `rowCount`, `viewRows`,
+  `stickyMode`.
+- Options `sticky: false` (force the transform fallback; `?fgsticky=off` in
+  the page URL does the same) and `maxScroll` (the spacer cap, default 8M px).
+- Column options `minWidth` and `className`.
+- `src/grid.d.ts` declares the API for TypeScript callers (gem-explorer and
+  gratnav are TS). It is written by hand, so change it with `grid.js`.
+- Browser floor: Chrome 90, Firefox 81, Safari 16, set by `overflow: clip`
+  on the viewport. The JS alone would run a year or two earlier.
+- The grid calls `need()` again after each `invalidate()` while rows in range
+  are missing. Callers must skip pages already in flight (the demo does).
+  The grid doesn't debounce; the demo debounces by 60 ms.
+
+Where the build differs from §7–§13, and why:
+
+- **Scroller sizing.** `.fg-scroller` is `position: absolute; inset: 0`
+  inside `.fg-grid`, which takes `height: 100%` and a `min-height`. The
+  scroller's height can then never come from its own content, so a host that
+  forgets to give the container a height gets a 160 px grid instead of a
+  feedback loop.
+- **Partial row.** The pool is every whole row plus one. The sticky viewport
+  is given the scroller's measured height and `overflow: clip`, so the extra
+  row can't push the sticky block up at the bottom. `clip` doesn't create a
+  scroll container, so frozen cells still stick to the scroller. The spacer
+  is `clientHeight + min(contentRange, cap)`.
+- **Scaled scrolling.** Positions set from code (keys, `scrollToRow`) keep at
+  least 2 px between scrollTop and either end unless they mean that end.
+  Without that, a row near the bottom set by a key press could sit on the
+  scrollbar's end, and wheeling down would have nothing left to scroll.
+- **Resize.** A `ResizeObserver` on the scroller (plus `visualViewport`),
+  debounced 100 ms, replaces window `resize`/`orientationchange`. It also
+  catches containers that change size without the window changing.
+- **Select all** keeps the focused cell where it is and flags the whole grid
+  as selected, including rows appended later. Moving the anchor and focus to
+  opposite corners would have scrolled to the last row.
+- **First key press.** With nothing focused, a plain arrow focuses the
+  top-left visible cell without moving, so it doesn't skip a cell. Jumps
+  (Ctrl/Cmd+arrows, PgUp/PgDn, Home/End) act from that cell.
+- **Copy.** The `copy` event targets the page selection or `<body>`, not the
+  focused grid, so the grid listens on `document` and checks focus. Safari
+  fires no `copy` event when nothing is selected, so Ctrl/Cmd+C also starts a
+  zero-delay timer that falls back to `navigator.clipboard.writeText` if no
+  event came.
+- **Drag and links.** Pointer capture starts only once a mouse drag has moved
+  4 px. Capturing on pointerdown retargets the click to the capturing element,
+  and links stopped opening.
+- **Autofit** builds the font string from `fontStyle`, `fontWeight`,
+  `fontSize` and `fontFamily`. Firefox can return an empty `font` shorthand.
+
+Testing notes:
+
+- `npm test` runs the unit tests (`node:test`), `npm run test:browser` the
+  Playwright suite, `npm run check` everything. `FG_BROWSERS=chromium,firefox`
+  limits the browser projects.
+- Touch tests send raw `Input.dispatchTouchEvent` sequences over CDP.
+  `Input.synthesizeScrollGesture` with touch input doesn't scroll in headless
+  Chromium.
+- WebKit hasn't run yet. Playwright's WebKit build needs system libraries the
+  dev machine (CachyOS) doesn't have. Safari's height limit (§8) and the
+  sticky-drift fallback are therefore untested in WebKit.
+- The Firefox drag test drags inside the bottom edge zone, not past it.
+  Playwright's Firefox sends no mouse events below the viewport.

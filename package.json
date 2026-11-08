@@ -1,0 +1,52 @@
+{
+  "name": "facetful-grid",
+  "version": "0.1.0",
+  "description": "A small, framework-free, read-only data grid for facetful results.",
+  "keywords": [
+    "data-grid",
+    "datagrid",
+    "table",
+    "virtual-scroll",
+    "facetful"
+  ],
+  "author": "David Raznick",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kindly/facetful-grid.git"
+  },
+  "homepage": "https://github.com/kindly/facetful-grid#readme",
+  "bugs": {
+    "url": "https://github.com/kindly/facetful-grid/issues"
+  },
+  "type": "module",
+  "main": "src/grid.js",
+  "module": "src/grid.js",
+  "types": "src/grid.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/grid.d.ts",
+      "default": "./src/grid.js"
+    },
+    "./grid.css": "./src/grid.css"
+  },
+  "files": [
+    "src"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "scripts": {
+    "test": "node --test test/unit/",
+    "test:browser": "playwright test",
+    "size": "node scripts/size-check.mjs",
+    "demo": "node scripts/serve.mjs",
+    "check": "npm test && npm run size && npm run test:browser",
+    "prepublishOnly": "npm test && npm run size"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "esbuild": "0.28.2",
+    "facetful": "0.7.1"
+  },
+  "license": "MIT"
+}

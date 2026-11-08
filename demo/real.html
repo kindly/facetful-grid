@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>facetful-grid on real data</title>
+<link rel="stylesheet" href="../src/grid.css">
+<style>
+  html, body { margin: 0; height: 100%; font: 14px system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  header { padding: 8px 12px; display: flex; gap: 6px 16px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; }
+  nav a { margin-right: 10px; }
+  nav a[aria-current] { font-weight: 600; color: inherit; text-decoration: none; }
+  #status { color: #667; font-variant-numeric: tabular-nums; }
+  #note { color: #667; }
+  #grid { flex: 1; min-height: 0; margin: 0 12px 12px; border: 1px solid #d5dbe0; }
+  @media (prefers-color-scheme: dark) { body { background: #111; color: #ddd; } a { color: #8ab4f8; } #grid { border-color: #333; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>facetful-grid</h1>
+  <nav>
+    <a href="?data=gem">GEM power plants</a>
+    <a href="?data=grantnav">GrantNav grants</a>
+    <a href="./">synthetic</a>
+  </nav>
+  <span id="status"></span>
+  <span id="note"></span>
+</header>
+<div id="grid"></div>
+<script type="module" src="real.js"></script>
+</body>
+</html>

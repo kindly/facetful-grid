@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>facetful-grid demo</title>
+<link rel="stylesheet" href="../src/grid.css">
+<style>
+  html, body { margin: 0; height: 100%; font: 14px system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  header { padding: 8px 12px; display: flex; gap: 16px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0; }
+  #status { color: #667; font-variant-numeric: tabular-nums; }
+  #grid { flex: 1; min-height: 0; margin: 0 12px 12px; border: 1px solid #d5dbe0; }
+  @media (prefers-color-scheme: dark) { body { background: #111; color: #ddd; } #grid { border-color: #333; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>facetful-grid</h1>
+  <span id="status"></span>
+  <span id="note"></span>
+  <span>real data: <a href="real.html?data=gem">GEM</a> · <a href="real.html?data=grantnav">GrantNav</a></span>
+</header>
+<div id="grid"></div>
+<script type="module" src="demo.js"></script>
+</body>
+</html>
