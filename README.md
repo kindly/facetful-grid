@@ -89,8 +89,28 @@ Arrows, Shift to extend, Ctrl/Cmd to jump to an edge, PgUp/PgDn, Home/End
 
 ### Theming
 
-Override the `--fg-*` custom properties on `.fg-grid`; see the top of
-`src/grid.css`. Light and dark defaults follow `prefers-color-scheme`.
+Override the `--fg-*` custom properties on `.fg-grid`. The defaults have no
+specificity, so your rule wins wherever your stylesheet loads.
+
+```css
+.fg-grid { --fg-font: 14px/1.4 Inter, sans-serif; --fg-selected: #ffd70040; }
+```
+
+- Colours: `--fg-text`, `--fg-muted` (header text), `--fg-bg`,
+  `--fg-head-bg`, `--fg-border` (header lines), `--fg-row-border`,
+  `--fg-col-border` (`transparent` for no column lines), `--fg-hover`,
+  `--fg-selected`, `--fg-focus`, `--fg-link`, `--fg-loading`,
+  `--fg-frozen-divider`.
+- Sizes: `--fg-font` (a `font` shorthand), `--fg-head-font-weight`,
+  `--fg-pad`, `--fg-head-h` (30 px), `--fg-min-height`. Row height is the
+  `rowHeight` option, since the scrolling maths needs it; raise it with the
+  font size.
+
+Colours follow `prefers-color-scheme`. Set `data-theme="light"` or
+`data-theme="dark"` on the grid or any ancestor (`<html>` works) to force
+one, for a site with its own theme switch. Don't nest opposite values: the
+light rule wins. Anything else (line widths, the focus outline, the resize
+handle) is an ordinary rule on an `fg-` class you can override.
 
 ## Develop
 

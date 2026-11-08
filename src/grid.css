@@ -1,8 +1,13 @@
-/* facetful-grid default stylesheet. Hosts override the custom properties. */
-.fg-grid {
+/* facetful-grid default stylesheet. Hosts override the custom properties.
+   The defaults sit in :where() (no specificity), so a host's
+   `.fg-grid { --fg-bg: ... }` wins wherever its stylesheet loads.
+   Colours follow prefers-color-scheme unless data-theme="light" or "dark" is
+   set on the grid or an ancestor. */
+:where(.fg-grid) {
   --fg-font: 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
   --fg-head-font-weight: 600;
   --fg-pad: 8px;
+  --fg-head-h: 30px;
   --fg-min-height: 160px;
   --fg-text: #1c2329;
   --fg-muted: #5d6973;
@@ -10,12 +15,66 @@
   --fg-head-bg: #f5f7f8;
   --fg-border: #d5dbe0;
   --fg-row-border: #edf0f2;
+  --fg-col-border: #e4e8eb;
   --fg-hover: #f3f7fa;
   --fg-selected: rgba(37, 117, 214, 0.13);
   --fg-focus: #2575d6;
   --fg-link: #1d61bf;
   --fg-loading: #e8ecef;
   --fg-frozen-divider: #c9d1d7;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :where(.fg-grid) {
+    --fg-text: #e3e8ec;
+    --fg-muted: #9aa6b0;
+    --fg-bg: #16191c;
+    --fg-head-bg: #1e2226;
+    --fg-border: #343a40;
+    --fg-row-border: #23282c;
+    --fg-col-border: #2a3035;
+    --fg-hover: #1d2227;
+    --fg-selected: rgba(92, 156, 238, 0.22);
+    --fg-focus: #5c9cee;
+    --fg-link: #7fb2f5;
+    --fg-loading: #262b30;
+    --fg-frozen-divider: #3d444b;
+    color-scheme: dark;
+  }
+}
+:where([data-theme="dark"] .fg-grid, .fg-grid[data-theme="dark"]) {
+  --fg-text: #e3e8ec;
+  --fg-muted: #9aa6b0;
+  --fg-bg: #16191c;
+  --fg-head-bg: #1e2226;
+  --fg-border: #343a40;
+  --fg-row-border: #23282c;
+  --fg-col-border: #2a3035;
+  --fg-hover: #1d2227;
+  --fg-selected: rgba(92, 156, 238, 0.22);
+  --fg-focus: #5c9cee;
+  --fg-link: #7fb2f5;
+  --fg-loading: #262b30;
+  --fg-frozen-divider: #3d444b;
+  color-scheme: dark;
+}
+:where([data-theme="light"] .fg-grid, .fg-grid[data-theme="light"]) {
+  --fg-text: #1c2329;
+  --fg-muted: #5d6973;
+  --fg-bg: #fff;
+  --fg-head-bg: #f5f7f8;
+  --fg-border: #d5dbe0;
+  --fg-row-border: #edf0f2;
+  --fg-col-border: #e4e8eb;
+  --fg-hover: #f3f7fa;
+  --fg-selected: rgba(37, 117, 214, 0.13);
+  --fg-focus: #2575d6;
+  --fg-link: #1d61bf;
+  --fg-loading: #e8ecef;
+  --fg-frozen-divider: #c9d1d7;
+  color-scheme: light;
+}
+.fg-grid {
   position: relative;
   height: 100%;
   min-height: var(--fg-min-height);
@@ -23,22 +82,6 @@
   color: var(--fg-text);
   background: var(--fg-bg);
   outline: none;
-}
-@media (prefers-color-scheme: dark) {
-  .fg-grid {
-    --fg-text: #e3e8ec;
-    --fg-muted: #9aa6b0;
-    --fg-bg: #16191c;
-    --fg-head-bg: #1e2226;
-    --fg-border: #343a40;
-    --fg-row-border: #23282c;
-    --fg-hover: #1d2227;
-    --fg-selected: rgba(92, 156, 238, 0.22);
-    --fg-focus: #5c9cee;
-    --fg-link: #7fb2f5;
-    --fg-loading: #262b30;
-    --fg-frozen-divider: #3d444b;
-  }
 }
 .fg-grid:focus-visible { box-shadow: inset 0 0 0 1px var(--fg-focus); }
 
@@ -70,6 +113,10 @@
   -webkit-user-select: none;
   background-color: inherit;
 }
+/* Column lines: a shadow, not a border, so widths and autofit don't change.
+   --fg-col-border: transparent turns them off. */
+.fg-cell { box-shadow: inset -1px 0 0 var(--fg-col-border); }
+.fg-hcell { box-shadow: inset -1px 0 0 var(--fg-border); }
 .fg-cell { line-height: calc(var(--fg-row-h) - 1px); cursor: cell; }
 .fg-right { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -93,14 +140,14 @@
 }
 
 .fg-frozen { position: sticky; z-index: 1; }
-.fg-frozen-last { box-shadow: 1px 0 0 var(--fg-frozen-divider); }
+.fg-frozen-last, .fg-hcell.fg-frozen-last { box-shadow: 1px 0 0 var(--fg-frozen-divider); }
 
 .fg-hcell {
   position: relative;
   display: flex;
   align-items: center;
   gap: 4px;
-  height: var(--fg-head-h, 30px);
+  height: var(--fg-head-h);
   box-sizing: border-box;
   font-weight: var(--fg-head-font-weight);
   color: var(--fg-muted);

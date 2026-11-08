@@ -341,7 +341,8 @@ horizontally too, allowing for frozen columns.
   frozen divider.
 - Class names prefixed `fg-`.
 - Light and dark defaults via `prefers-color-scheme`. Hosts override the
-  properties.
+  properties. (As built: `data-theme` can force a mode, and the defaults
+  have no specificity; see §16.)
 - Numbers right-aligned with `font-variant-numeric: tabular-nums` when
   `align: "right"`.
 
@@ -417,6 +418,14 @@ Settled names and additions to the §6 sketch:
 - Column options `minWidth` and `className`.
 - `src/grid.d.ts` declares the API for TypeScript callers (gem-explorer and
   gratnav are TS). It is written by hand, so change it with `grid.js`.
+- Theming. The defaults sit in `:where(.fg-grid)`, so a host's
+  `.fg-grid { --fg-* }` wins even from a stylesheet loaded before
+  `grid.css`; with plain `.fg-grid` the built-in dark block won in dark mode.
+  `data-theme="light|dark"` on the grid or an ancestor forces a palette,
+  because sites with their own theme switch need the grid to follow the page,
+  not the OS. Each palette also sets `color-scheme`, so scrollbars match.
+  Added `--fg-col-border` (column lines, drawn as an inset shadow so widths
+  don't change) and made `--fg-head-h` a declared default.
 - Browser floor: Chrome 90, Firefox 81, Safari 16, set by `overflow: clip`
   on the viewport. The JS alone would run a year or two earlier.
 - The grid calls `need()` again after each `invalidate()` while rows in range
