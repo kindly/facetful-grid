@@ -22,9 +22,18 @@ test("wrapped cells make rows taller, capped at --fg-max-lines", async ({ page }
   const hs = new Set(list.map((r) => Math.round(r.h)));
   // 1, 2 or 3 lines of 16px plus padding and border; one line is rowHeight
   for (const h of hs) expect([25, 41, 57]).toContain(h);
-  expect(hs.has(25) && hs.size > 1).toBe(true);
   // rows stack with no gaps or overlaps
   for (let i = 1; i < list.length; i++) expect(Math.abs(list[i].top - list[i - 1].bottom)).toBeLessThan(1);
+
+  // widths that force each case whatever the fonts: wide enough for every
+  // name is all one line; very narrow wraps every name, at most three lines
+  const widen = (w) => page.evaluate((w) => grid.setColumns(demo.columns.map((c, i) => (i ? c : { ...c, width: w }))), w);
+  await widen(1000);
+  let hs2 = new Set((await rows(page)).list.map((r) => Math.round(r.h)));
+  expect([...hs2]).toEqual([25]);
+  await widen(50);
+  hs2 = new Set((await rows(page)).list.map((r) => Math.round(r.h)));
+  for (const h of hs2) expect([41, 57]).toContain(h);
 });
 
 test("one scroll to the bottom of the scrollbar shows the last row", async ({ page }) => {
