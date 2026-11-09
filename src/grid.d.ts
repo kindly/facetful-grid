@@ -18,6 +18,11 @@ export interface Column {
   sortable?: boolean;
   /** Added to this column's cells. */
   className?: string;
+  /**
+   * Wrap text, up to --fg-max-lines (3) lines; the row grows to fit.
+   * Prototype: scrolling still steps one row at a time whatever its height.
+   */
+  wrap?: boolean;
 }
 
 export interface Sort {

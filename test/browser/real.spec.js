@@ -28,6 +28,6 @@ test("GEM: whole result in memory, read from columnRaw, sorted by SQL", async ({
   await page.locator(".fg-grid").focus();
   await page.keyboard.press("ControlOrMeta+End");
   const p = await probe(page);
-  expect(p.first + p.viewRows).toBe(183125);
+  expect(p.first + p.inside).toBe(183125); // the last row wholly on screen (plant names wrap)
   expect(errors).toEqual([]);
 });

@@ -59,8 +59,8 @@ The container needs a height. Without one the grid falls back to
 
 | Option | Default | |
 |---|---|---|
-| `columns` | `[]` | `{ title, width, minWidth, frozen, align: "right", kind: "link", sortable, className }`. Frozen columns must come first. |
-| `rowHeight` | 25 | Fixed, one line. |
+| `columns` | `[]` | `{ title, width, minWidth, frozen, align: "right", kind: "link", sortable, className, wrap }`. Frozen columns must come first. `wrap: true` (prototype) wraps the column's text up to `--fg-max-lines` lines and lets rows grow. |
+| `rowHeight` | 25 | One line. Rows with wrapped cells are taller; scrolling still moves a whole row at a time. |
 | `minColumnWidth` | 40 | Per column with `minWidth`. |
 | `rowCount` | 0 | |
 | `text(row, col)` | | What the cell shows and what copy writes. |
@@ -102,7 +102,8 @@ specificity, so your rule wins wherever your stylesheet loads.
   `--fg-selected`, `--fg-focus`, `--fg-link`, `--fg-loading`,
   `--fg-frozen-divider`.
 - Sizes: `--fg-font` (a `font` shorthand), `--fg-head-font-weight`,
-  `--fg-pad`, `--fg-head-h` (30 px), `--fg-min-height`. Row height is the
+  `--fg-pad`, `--fg-head-h` (30 px), `--fg-min-height`, `--fg-max-lines` (3)
+  and `--fg-wrap-pad` (4 px, above and below wrapped text). Row height is the
   `rowHeight` option, since the scrolling maths needs it; raise it with the
   font size.
 
@@ -124,12 +125,14 @@ npm run test:browser  # FG_BROWSERS=chromium,firefox to pick browsers
 ```
 
 Demo URL parameters: `rows`, `cols`, `delay` (ms per page; 0 loads
-everything up front), `page` (rows per page), `frozen`, `sticky=off`.
+everything up front), `page` (rows per page), `frozen`, `sticky=off`,
+`wrap=1` (wrap the Plant column).
 
 `demo/real.html?data=gem` and `?data=grantnav` run the grid over real
 facetful results: the GEM power tracker (183k rows) and 360Giving GrantNav
 (1.5M rows). The page loads the image into facetful, runs one `SELECT`, reads
 cells from `columnRaw()`/`dictValue()`, and sorts by re-running the query with
-`ORDER BY`. The images come from sibling checkouts of gem-explorer and
+`ORDER BY`. The GEM page wraps Plant / Project name; add `&wrap=0` to
+compare. The images come from sibling checkouts of gem-explorer and
 gratnav, served under `/data/`. Set `FG_DATA` to point elsewhere (see
 `scripts/serve.mjs`). facetful is a dev dependency, used only by this demo.

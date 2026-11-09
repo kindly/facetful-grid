@@ -468,6 +468,38 @@ Where the build differs from §7–§13, and why:
 - **Autofit** builds the font string from `fontStyle`, `fontWeight`,
   `fontSize` and `fontFamily`. Firefox can return an empty `font` shorthand.
 
+Wrapped columns (prototype, `wrap: true` on a column). §4 left variable
+row heights for later; they turned out cheap because scrolling already moves
+in whole rows: scrollTop maps to a row index, never to pixels, so a row's
+height never enters the scroll maths and nothing has to be measured ahead.
+
+- Rows are `min-height: rowHeight` and stack in normal flow inside the
+  clipped viewport. A wrapped cell uses `-webkit-line-clamp`, capped at
+  `--fg-max-lines` (3): a row taller than the screen could never be read,
+  since a scroll step skips the whole row. Copy still gives the full text.
+- Rows are at least one line, so the pool (rows that fit plus one) is still
+  enough; tall rows just leave the extras clipped.
+- Hit testing walks the pool's row heights. Revealing a row below the
+  screen drops rows off the top until it fits (`fitTo`); PgUp/PgDn move by
+  the rows wholly on screen.
+- The end: the range is rowCount - viewRows rows, and wrapped rows may not
+  fit on that last page. When the last row is painted but not wholly on
+  screen, the grid adds that many rows of range (`extra`), staying at the
+  bottom if it was there, so one scroll to the end shows the last row.
+  `extra` only grows; a new result, columns or row count clear it. A resize
+  keeps it, so it can be a few rows too large after a width change (blank
+  space below the last row). A resize at the end now stays at the end, for
+  unwrapped grids too.
+- Cost: one wrapped column of 30, Chromium, 2M rows, scroll handler plus
+  forced layout: median 4.6 → 6.1 ms (4× throttle 19 → 25.5 ms). `min-height`
+  in place of `height` changed nothing measurable. +0.4 KB gzipped.
+- Autofit stays one-line for wrapped columns too: double-clicking the edge
+  widens the column to its longest text on screen, which in effect unwraps
+  it. Decided to keep this; fitting to two or three lines was considered and
+  dropped as not worth the code.
+- Open: a three-line row jumps three lines per step, which shows on
+  trackpads; WebKit untested.
+
 Testing notes:
 
 - `npm test` runs the unit tests (`node:test`), `npm run test:browser` the

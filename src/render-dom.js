@@ -27,7 +27,7 @@ export function createDomRenderer({ rowHeight, sticky = true }) {
   const body = el("div", "fg-rows", view);
 
   let columns = [], L = null, classes = [], pool = [], headCells = [];
-  let headH = 0, viewH = 0, viewRows = 1, first = 0;
+  let headH = 0, viewH = 0, viewRows = 1, first = 0, wrap = false;
   // WebKit sticky-drift fallback (see hold()).
   let broken = false, tick = 0, bad = 0;
   const force = !sticky || /[?&]fgsticky=off\b/.test(globalThis.location?.search || "");
@@ -64,6 +64,8 @@ export function createDomRenderer({ rowHeight, sticky = true }) {
     get poolSize() { return pool.length; },
     get first() { return first; },
     get mode() { return broken ? "transform" : "sticky"; },
+    /** Some column wraps, so rows can be taller than rowHeight. */
+    get wrap() { return wrap; },
 
     mount(container) { container.append(root); },
 
@@ -71,10 +73,12 @@ export function createDomRenderer({ rowHeight, sticky = true }) {
     layout(cols, layout, sort) {
       columns = cols;
       L = layout;
+      wrap = cols.some((c) => c.wrap);
       classes = cols.map((col, c) => {
         let b = "fg-cell";
         if (col.align === "right") b += " fg-right";
         if (col.className) b += " " + col.className;
+        if (col.wrap) b += " fg-wrap";
         if (c < L.frozen) b += " fg-frozen" + (c === L.frozen - 1 ? " fg-frozen-last" : "");
         return [b, b + " fg-selected", b + " fg-focus", b + " fg-selected fg-focus"];
       });
@@ -216,11 +220,45 @@ export function createDomRenderer({ rowHeight, sticky = true }) {
       const b = scroller.getBoundingClientRect();
       const x = clientX - b.left - scroller.clientLeft, y = clientY - b.top - scroller.clientTop;
       const yr = y - headH;
-      const row = yr < 0 ? -1 : first + Math.floor(yr / rowHeight);
+      let row = yr < 0 ? -1 : first + Math.floor(yr / rowHeight);
+      if (wrap && yr >= 0) {
+        // Rows differ in height: find the slot under y; past the last slot,
+        // count on in rowHeight steps (callers clamp).
+        let s = 0, top = 0;
+        for (; s < pool.length && !pool[s].row.hidden; s++) {
+          const h = pool[s].row.offsetHeight;
+          if (yr < top + h) break;
+          top += h;
+        }
+        row = first + s + (s < pool.length && !pool[s].row.hidden ? 0 : Math.floor((yr - top) / rowHeight));
+      }
       const cx = x < L.frozenWidth ? x : x + scroller.scrollLeft;
       let col = colAt(L, cx);
       if (col < 0) col = cx < 0 ? 0 : columns.length - 1;
       return { row, col, x, y, top: headH, bottom: viewH, left: L.frozenWidth, right: scroller.clientWidth };
+    },
+
+    /**
+     * Wrapped rows: the smallest k such that pool slots k..t, all painted,
+     * fit on screen together (t alone if even it doesn't). Reads layout.
+     */
+    fitTo(t) {
+      const room = viewH - headH;
+      let k = t, used = pool[t]?.row.offsetHeight || rowHeight;
+      while (k > 0 && used + pool[k - 1].row.offsetHeight <= room) used += pool[--k].row.offsetHeight;
+      return k;
+    },
+
+    /** Rows wholly on screen from the first painted row (at least 1). */
+    fullRows() {
+      if (!wrap) return viewRows;
+      const room = viewH - headH;
+      let n = 0, used = 0;
+      for (const p of pool) {
+        if (p.row.hidden || (used += p.row.offsetHeight) > room) break;
+        n++;
+      }
+      return Math.max(1, n);
     },
 
     destroy() { root.remove(); pool = []; },

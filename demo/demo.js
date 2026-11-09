@@ -2,7 +2,8 @@
 // delay, the way a facetful caller pages through a result.
 //
 // URL parameters: rows, cols, delay (ms; 0 = everything loaded up front),
-// page (rows per page), frozen (leading frozen columns), sticky=off.
+// page (rows per page), frozen (leading frozen columns), sticky=off,
+// wrap=1 (wrap the Plant column, narrowed so longer names take two lines).
 import { createGrid } from "../src/grid.js";
 
 const t0 = performance.now();
@@ -12,6 +13,7 @@ const NCOLS = Math.max(4, +(q.get("cols") ?? 12));
 const DELAY = +(q.get("delay") ?? 120);
 const PAGE = +(q.get("page") ?? 500);
 const FROZEN = +(q.get("frozen") ?? 1);
+const WRAP = q.get("wrap") === "1";
 
 const WORDS = ["Alder", "Birch", "Cedar", "Delta", "Elm", "Fjord", "Granite", "Harbor", "Iron", "Juniper",
   "Kestrel", "Linden", "Maple", "North", "Oak", "Pine", "Quarry", "Ridge", "Stone", "Tide"];
@@ -29,7 +31,7 @@ const hash = (r, c) => {
 const row = (r) => (seed % 2 ? ROWS - 1 - r : r); // "sorting" reverses order
 
 const columns = [
-  { title: "Plant", width: 200, frozen: FROZEN > 0 },
+  { title: "Plant", width: WRAP ? 150 : 200, frozen: FROZEN > 0, wrap: WRAP },
   { title: "Row", width: 90, align: "right", frozen: FROZEN > 1 },
   { title: "Type", width: 100 },
   { title: "Capacity (MW)", width: 120, align: "right" },

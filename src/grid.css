@@ -8,6 +8,8 @@
   --fg-head-font-weight: 600;
   --fg-pad: 8px;
   --fg-head-h: 30px;
+  --fg-max-lines: 3;
+  --fg-wrap-pad: 4px;
   --fg-min-height: 160px;
   --fg-text: #1c2329;
   --fg-muted: #5d6973;
@@ -99,7 +101,7 @@
 
 .fg-head, .fg-row { display: grid; grid-template-columns: var(--fg-cols); }
 .fg-head { position: relative; z-index: 2; background: var(--fg-head-bg); border-bottom: 1px solid var(--fg-border); }
-.fg-row { height: var(--fg-row-h); box-sizing: border-box; border-bottom: 1px solid var(--fg-row-border); background: var(--fg-bg); }
+.fg-row { min-height: var(--fg-row-h); box-sizing: border-box; border-bottom: 1px solid var(--fg-row-border); background: var(--fg-bg); }
 /* display: grid outranks the UA [hidden] rule. */
 .fg-row[hidden] { display: none; }
 .fg-row:hover { background: var(--fg-hover); }
@@ -118,6 +120,18 @@
 .fg-cell { box-shadow: inset -1px 0 0 var(--fg-col-border); }
 .fg-hcell { box-shadow: inset -1px 0 0 var(--fg-border); }
 .fg-cell { line-height: calc(var(--fg-row-h) - 1px); cursor: cell; }
+/* wrap: true. A row is as tall as its tallest wrapped cell, up to
+   --fg-max-lines lines; one line is still exactly --fg-row-h. Cap the lines:
+   scrolling steps a whole row, so a row taller than the screen can't be read. */
+.fg-cell.fg-wrap {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--fg-max-lines);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding-block: var(--fg-wrap-pad);
+  line-height: calc(var(--fg-row-h) - 1px - 2 * var(--fg-wrap-pad));
+}
 .fg-right { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* Selection is drawn as a translucent layer over whatever background the cell has. */

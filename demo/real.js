@@ -13,6 +13,7 @@ const SETS = {
     file: "/data/gem/gip-2026-08.facetful.gz",
     lead: ["Plant / Project name", "Unit / Phase name", "Type", "Country/area", "Capacity (MW)", "Status", "Start year", "Technology"],
     link: "GEM.Wiki URL",
+    wrap: "Plant / Project name",
     skip: [],
   },
   grantnav: {
@@ -23,7 +24,8 @@ const SETS = {
   },
 };
 
-const name = new URLSearchParams(location.search).get("data") || "gem";
+const params = new URLSearchParams(location.search);
+const name = params.get("data") || "gem";
 const set = SETS[name] || SETS.gem;
 document.querySelector(`nav a[href="?data=${name}"]`)?.setAttribute("aria-current", "page");
 const status = document.getElementById("status"), note = document.getElementById("note");
@@ -33,8 +35,11 @@ const ms = (t) => `${Math.round(t)} ms`;
 
 // ---- the grid comes first: header and empty rows before any data ----------
 const q = (c) => `"${c.replace(/"/g, '""')}"`;
-let columns = set.lead.map((title) => ({ title, width: 140 }));
-columns[0] = { ...columns[0], width: 260, frozen: true };
+// ?wrap=0 keeps every column on one line, for comparison
+const wraps = (n) => n === set.wrap && params.get("wrap") !== "0";
+const firstWidth = (n) => (wraps(n) ? 200 : 260);
+let columns = set.lead.map((title) => ({ title, width: 140, wrap: wraps(title) }));
+columns[0] = { ...columns[0], width: firstWidth(set.lead[0]), frozen: true };
 let readers = [], sort = null, db, result;
 
 const grid = createGrid(document.getElementById("grid"), {
@@ -76,10 +81,11 @@ function reader(res, col) {
 function columnDefs(res) {
   return res.columns.map((c, i) => {
     const numeric = !["text", "bool"].includes(c.kind);
-    const base = c.kind === "text" ? (i === 0 ? 260 : 170) : c.kind === "date" ? 105 : 110;
+    const base = c.kind === "text" ? (i === 0 ? firstWidth(c.name) : 170) : c.kind === "date" ? 105 : 110;
     return {
       title: c.name,
-      width: Math.max(base, Math.min(260, c.name.length * 8 + 40)),
+      width: wraps(c.name) ? base : Math.max(base, Math.min(260, c.name.length * 8 + 40)),
+      wrap: wraps(c.name),
       align: numeric ? "right" : undefined,
       frozen: i === 0,
       kind: c.name === set.link ? "link" : undefined,

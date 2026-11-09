@@ -25,6 +25,9 @@ export function createGrid(container, options) {
   let L = layoutColumns(columns, o.minColumnWidth);
   let sort = o.sort ?? null, gen = 0, sel = EMPTY;
   let painted = -1, dirty = true, needKey = "", copyPending = false;
+  // Wrapped rows: extra scroll range, in rows, so the last rows can be reached
+  // when they don't fit on the last whole-row page. Grows on demand (atEnd).
+  let extra = 0;
   let drag = null, rs = null, raf = 0, timer = 0, px = 0, py = 0, acc = 0;
 
   const map = createScrollMap(o.maxScroll);
@@ -43,6 +46,26 @@ export function createGrid(container, options) {
     const rg = rangeOf(sel, src.rowCount, nc());
     R.paint(first, src, rg && { ...rg, fr: sel.focus.row, fc: sel.focus.col });
     need(first);
+    if (R.wrap) atEnd(first);
+  }
+
+  /**
+   * Scrolling is in whole rows whatever their height, so the range is
+   * rowCount - viewRows. With wrapped rows the last page may not fit; when
+   * the last row is in the pool but not wholly on screen, add enough rows
+   * of range to scroll it up into view.
+   */
+  function atEnd(first) {
+    const last = src.rowCount - 1 - first;
+    if (last < 0 || last >= R.poolSize) return;
+    const want = first + R.fitTo(last) - (src.rowCount - R.viewRows);
+    if (want <= extra) return;
+    // At the bottom of the scrollbar, stay there, so one scroll to the end
+    // shows the last row.
+    const bottom = scroller.scrollTop >= map.maxScroll - 2;
+    extra = want;
+    configure();
+    if (bottom) goRow(src.rowCount + extra);
   }
 
   /** Tell the caller about unloaded rows on screen or within a screen of it. */
@@ -67,12 +90,24 @@ export function createGrid(container, options) {
     paint();
   }
 
-  /** Re-measure the scroller and refit the pool and the scroll range. */
-  function relayout() {
+  /**
+   * Re-measure the scroller and refit the pool and the scroll range. On a
+   * resize (`keepEnd`), a view at the bottom of the scrollbar stays there:
+   * fewer rows fitting would otherwise leave the last ones below the edge.
+   */
+  function relayout(keepEnd) {
     map.onScroll(scroller.scrollTop); // a scroll whose event hasn't fired yet
-    const m = R.measure();
-    const st = map.configure(src.rowCount, o.rowHeight, m.viewRows, m.height);
-    R.setSpacer(m.height + map.maxScroll);
+    const end = keepEnd === true && map.maxScroll > 0 && scroller.scrollTop >= map.maxScroll - 2;
+    R.measure();
+    // extra is kept: dropping it here would pull a view at the end back up.
+    // After a width change it may be a little large (blank space at the end).
+    configure();
+    if (end) goRow(src.rowCount + extra);
+  }
+
+  function configure() {
+    const st = map.configure(src.rowCount + extra, o.rowHeight, R.viewRows, scroller.clientHeight);
+    R.setSpacer(scroller.clientHeight + map.maxScroll);
     writeTop(st);
     dirty = true;
     paint();
@@ -82,7 +117,7 @@ export function createGrid(container, options) {
   // Paint inside the scroll event, not in rAF: a frame behind shows as blank at speed.
   scroller.addEventListener("scroll", onScroll, { passive: true });
 
-  const soon = () => { clearTimeout(timer); timer = setTimeout(relayout, 100); };
+  const soon = () => { clearTimeout(timer); timer = setTimeout(relayout, 100, true); };
   const ro = new ResizeObserver(soon);
   ro.observe(scroller);
   globalThis.visualViewport?.addEventListener("resize", soon);
@@ -98,6 +133,15 @@ export function createGrid(container, options) {
     const first = map.first, n = R.viewRows;
     if (cell.row < first) goRow(cell.row);
     else if (cell.row > first + n - 1) goRow(cell.row - n + 1);
+    // Wrapped rows above it can push it off the bottom: drop rows off the top
+    // until it fits. Row heights don't depend on position, so one step does.
+    // Twice: near the end the first step can be clamped before atEnd() has
+    // grown the range.
+    for (let i = 0; i < 2 && R.wrap && cell.row >= map.first; i++) {
+      const k = R.fitTo(cell.row - map.first);
+      if (k <= 0) break;
+      goRow(map.first + k);
+    }
     const left = revealLeft(L, cell.col, scroller.scrollLeft, scroller.clientWidth);
     if (left !== scroller.scrollLeft) scroller.scrollLeft = left;
   }
@@ -127,7 +171,7 @@ export function createGrid(container, options) {
       return;
     }
     const start = { row: map.first, col: L.frozen ? 0 : Math.max(0, colAt(L, scroller.scrollLeft)) };
-    const next = navigate(sel, e, src.rowCount, nc(), R.viewRows, start);
+    const next = navigate(sel, e, src.rowCount, nc(), R.fullRows(), start);
     if (!next) return;
     e.preventDefault();
     setSel(next);
@@ -292,6 +336,7 @@ export function createGrid(container, options) {
     /** Results grew, or the count became known. Keeps the selection and position. */
     setRowCount(n) {
       src.rowCount = n;
+      extra = 0;
       sel = fit(sel, n, nc());
       relayout();
     },
@@ -311,6 +356,7 @@ export function createGrid(container, options) {
       columns = cols.map((c) => ({ ...c }));
       L = layoutColumns(columns, o.minColumnWidth);
       R.layout(columns, L, sort);
+      extra = 0;
       sel = fit(sel, src.rowCount, nc());
       relayout();
     },
@@ -319,6 +365,7 @@ export function createGrid(container, options) {
       gen++;
       needKey = "";
       sel = EMPTY;
+      extra = 0;
       writeTop(map.scrollTopFor(0));
       src.rowCount = rowCount;
       relayout();
