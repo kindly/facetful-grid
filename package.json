@@ -36,7 +36,7 @@
     "*.css"
   ],
   "scripts": {
-    "test": "node --test test/unit/",
+    "test": "node --test \"test/unit/*.test.js\"",
     "test:browser": "playwright test",
     "size": "node scripts/size-check.mjs",
     "demo": "node scripts/serve.mjs",
