@@ -1,0 +1,32 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  # the same gate the release runs: unit tests, the 15 KB budget, and the
+  # browser suite in Chromium and Firefox. real.spec.js skips here (the GEM
+  # image lives in a sibling checkout, not this repo).
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run size
+      - run: npx playwright install --with-deps chromium firefox
+      - run: npm run test:browser
+        env:
+          FG_BROWSERS: chromium,firefox
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

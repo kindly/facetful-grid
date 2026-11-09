@@ -136,3 +136,19 @@ cells from `columnRaw()`/`dictValue()`, and sorts by re-running the query with
 compare. The images come from sibling checkouts of gem-explorer and
 gratnav, served under `/data/`. Set `FG_DATA` to point elsewhere (see
 `scripts/serve.mjs`). facetful is a dev dependency, used only by this demo.
+
+### Release
+
+`.github/workflows/release.yml` publishes to npm when a `v*` tag is pushed,
+the same way facetful does: npm trusted publishing (OIDC, no token in the
+repo), staged with `npm stage publish`, so a maintainer approves it on npm
+with 2FA before it goes live. The tag must match `package.json`'s version,
+and the unit tests, size budget and browser suite must pass first.
+
+```sh
+npm version 0.2.0 --no-git-tag-version   # or edit package.json
+git commit -am "Release 0.2.0" && git tag v0.2.0
+git push origin main v0.2.0
+```
+
+`.github/workflows/ci.yml` runs the same checks on every push.
